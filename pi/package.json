@@ -1,0 +1,21 @@
+{
+  "name": "milkcocoa-raspberrypi-example",
+  "descrption": "An example app with Raspberry Pi.",
+  "version": "0.0.1",
+  "author" : {
+    "name" : "Technical Rockstars"
+  },
+  "scripts": {
+    "start": "node light.js"
+  },
+  "engines":{
+    "node" : ">=0.10.*"
+  },
+  "dependencies": {
+  },
+  "devDependencies" : {
+    "pi-spi" : "*",
+  	"pi-gpio" : "*",
+    "milkcocoa" : "*"
+  }
+}
