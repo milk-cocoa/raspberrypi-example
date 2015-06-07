@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+	<title>Technical Rockstarsオフィスの玄関の明るさ</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
+	<script src="http://cdn.mlkcca.com/v2.0.1/milkcocoa.js"></script>
+	<script src="chart.js"></script>
+	<script>
+	window.addEventListener('load', function () {
+		var milkcocoa = new MilkCocoa("teai9pn46zr.mlkcca.com");
+		var datastore = [];
+        var chart = new createChart();
+        chart.setSvg("svgchart");
+        chart.setDatas(datastore);
+        chart.draw();
+		milkcocoa.dataStore('light').stream().size(30).next(function(err, datas) {
+			datastore = datas.map(function(d) {
+				return {
+					timestamp : d.timestamp,
+					value : d.value.v
+				}
+			});
+			refresh();
+		});
+		milkcocoa.dataStore('light').on('push', function(pushed) {
+			datastore.push({
+				timestamp : new Date().getTime(),
+				value : pushed.value.v
+			});
+			datastore.shift();
+			console.log(datastore);
+			refresh();
+		});
+		function refresh() {
+            chart.setDatas(datastore);
+            chart.update();
+		}
+	});
+	</script>
+	<style>
+.chart {
+	width: 840px;
+	height: 480px;
+}
+
+.y {
+	stroke: #4c4239;
+}
+
+.x {
+	stroke: #4c4239;
+}
+
+.axis {
+	fill: #4c4239;
+	stroke: #4c4239;
+}
+
+.line {
+  fill: none;
+  stroke: teal;
+  stroke-width: 1.5px;
+}
+	</style>	
+</head>
+<body>
+	<h3>こちらはTechnical Rockstarsオフィスの玄関の明るさになります。Milkcocoaを用いて、リアルタイムに更新されます。</h3>
+	<div id="svgchart"></div>
+</body>
+</html>
