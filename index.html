@@ -2,71 +2,70 @@
 <html lang="ja">
 <head>
 	<meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
 	<title>Technical Rockstarsオフィスの玄関の明るさ</title>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
 	<script src="http://cdn.mlkcca.com/v2.0.1/milkcocoa.js"></script>
 	<script src="chart.js"></script>
 	<script>
 	window.addEventListener('load', function () {
+
 		var milkcocoa = new MilkCocoa("{your-app-id}.mlkcca.com");
+
 		var datastore = [];
-        var chart = new createChart();
+
+    var chart = new createChart();
         chart.setSvg("svgchart");
-        chart.setDatas(datastore);
-        chart.draw();
-		milkcocoa.dataStore('light').stream().size(30).next(function(err, datas) {
+        chart.init();
+
+		milkcocoa.dataStore('light').stream().size(100).next(function(err, datas) {
 			datastore = datas.map(function(d) {
 				return {
 					timestamp : d.timestamp,
 					value : d.value.v
 				}
 			});
-			refresh();
+
+			chart.setDatas(datastore);
+			chart.initialDraw();
 		});
+
 		milkcocoa.dataStore('light').on('push', function(pushed) {
 			datastore.push({
 				timestamp : new Date().getTime(),
 				value : pushed.value.v
 			});
 			datastore.shift();
-			console.log(datastore);
-			refresh();
+
+			chart.setDatas(datastore);
+      chart.updateDraw();
 		});
-		function refresh() {
-            chart.setDatas(datastore);
-            chart.update();
-		}
 	});
 	</script>
 	<style>
+html, body{
+	background-color: #222;
+}
 .chart {
-	width: 840px;
-	height: 480px;
+	width: 1040px;
+	height: 420px;
+}
+.domain{
+	stroke-width: 1px;
+	stroke: #f2f2ff;
+}
+text{
+	font-size: 11px;
+	fill: #efefef;
+}
+path{
+	fill: none;
+	stroke: #FFF5C9;
 }
 
-.y {
-	stroke: #4c4239;
-}
-
-.x {
-	stroke: #4c4239;
-}
-
-.axis {
-	fill: #4c4239;
-	stroke: #4c4239;
-}
-
-.line {
-  fill: none;
-  stroke: teal;
-  stroke-width: 1.5px;
-}
-	</style>	
+	</style>
 </head>
 <body>
-	<h3>こちらはTechnical Rockstarsオフィスの玄関の明るさになります。Milkcocoaを用いて、リアルタイムに更新されます。</h3>
-	<div id="svgchart"></div>
+	<p style="text-align: center; color: #fff; font-size: 13px;">こちらはTechnical Rockstarsオフィスの玄関の明るさになります。Milkcocoaを用いて、リアルタイムに更新されます。<br>玄関の照明消灯時が2〜4、点灯時12〜14、その他の灯りの影響で中間の値もたまに刻みます。</p>
+	<div id="svgchart" style="margin: 0 auto; width: 1040px;"></div>
 </body>
 </html>
