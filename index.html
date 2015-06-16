@@ -1,65 +1,66 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-	<meta charset="UTF-8">
-	<title>Technical Rockstarsオフィスの玄関の明るさ</title>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
-	<script src="http://cdn.mlkcca.com/v2.0.1/milkcocoa.js"></script>
-	<script src="chart.js"></script>
-	<script>
-	window.addEventListener('load', function () {
+<meta charset="UTF-8">
+<title>Technical Rockstarsオフィスの玄関の明るさ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
+<script src="http://cdn.mlkcca.com/v2.0.1/milkcocoa.js"></script>
+<script src="chart.js"></script>
+<script>
+window.addEventListener('load', function () {
 
-		var milkcocoa = new MilkCocoa("{your-app-id}.mlkcca.com");
+  var milkcocoa = new MilkCocoa("{your-app-id}.mlkcca.com");
+  var datastore = [];
 
-		var datastore = [];
+  var chart = new createChart();
+      chart.setSvg("svgchart");
+      chart.init();
 
-    var chart = new createChart();
-        chart.setSvg("svgchart");
-        chart.init();
+  milkcocoa.dataStore('light').stream().size(100).next(function(err, datas) {
+    datastore = datas.map(function(d) {
+      return {
+        timestamp : d.timestamp,
+        value : d.value.v
+      }
+    });
 
-		milkcocoa.dataStore('light').stream().size(100).next(function(err, datas) {
-			datastore = datas.map(function(d) {
-				return {
-					timestamp : d.timestamp,
-					value : d.value.v
-				}
-			});
+    chart.setDatas(datastore);
+    chart.initialDraw();
+  });
 
-			chart.setDatas(datastore);
-			chart.initialDraw();
-		});
+   milkcocoa.dataStore('light').on('push', function(pushed) {
+    datastore.push({
+      timestamp : new Date().getTime(),
+      value : pushed.value.v
+    });
+    datastore.shift();
 
-		milkcocoa.dataStore('light').on('push', function(pushed) {
-			datastore.push({
-				timestamp : new Date().getTime(),
-				value : pushed.value.v
-			});
-			datastore.shift();
+    chart.setDatas(datastore);
+    chart.updateDraw();
+  });
 
-			chart.setDatas(datastore);
-      chart.updateDraw();
-		});
-	});
-	</script>
-	<style>
+});
+</script>
+
+<style>
 html, body{
-	background-color: #222;
+  background-color: #222;
 }
 .chart {
-	width: 1040px;
-	height: 420px;
+  width: 1040px;
+  height: 420px;
 }
 .domain{
-	stroke-width: 1px;
-	stroke: #f2f2ff;
+  stroke-width: 1px;
+  stroke: #f2f2ff;
 }
 text{
-	font-size: 11px;
-	fill: #efefef;
+  font-size: 11px;
+  fill: #efefef;
 }
 path{
-	fill: none;
-	stroke: #FFF5C9;
+  fill: none;
+  stroke: #FFF5C9;
 }
 
 	</style>
