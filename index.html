@@ -30,7 +30,7 @@ window.addEventListener('load', function () {
 
   milkcocoa.dataStore('light').on('push', function(pushed) {
     datastore.push({
-      timestamp : new Date().getTime(),
+      timestamp : pushed.timestamp,
       value : pushed.value.v
     });
     datastore.shift();
