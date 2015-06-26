@@ -56,7 +56,6 @@ window.onload = function(){
     initialLoop(0, [], function(datas) {
       datas.forEach(function(d,i){
         var date = new Date(d.timestamp);
-        // var dateElement = document.createElement('li');
         var dateArray = date.toString().split(' ');
 
 
@@ -75,10 +74,8 @@ window.onload = function(){
             }
           }
         }
-
-        // dateElement.innerHTML = date;
-        // list.appendChild(dateElement);
       });
+
       console.log(tmp);
       barChart.setDatas(tmp);
       barChart.init();
@@ -136,7 +133,7 @@ window.onload = function(){
   function initialLoop(count, stocks, cb) {
     stream.next(function(err, elems) {
       stocks = stocks.concat(elems);
-      if(count < 70) initialLoop(count + 1, stocks, cb);
+      if(elems.length > 0) initialLoop(count + 1, stocks, cb);
       else cb(stocks);
     });
   }
@@ -167,7 +164,7 @@ window.onload = function(){
         if(flag) allowReturn = true;
       });
 
-      if( (count < 700) && !allowReturn) loop(count + 1, stocks, cb);
+      if( (elems.length > 0) && !allowReturn) loop(count + 1, stocks, cb);
       else cb(stocks);
     });
   }
