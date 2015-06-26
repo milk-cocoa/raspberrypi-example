@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Technical Rockstarsオフィスの玄関の明るさの日ごとの総量</title>
+  <style>
+html, body{
+  background-color: #222;
+}
+.chart {
+  width: 1040px;
+  height: 420px;
+}
+.domain{
+  stroke-width: 1px;
+  stroke: #f2f2ff;
+}
+text{
+  font-size: 11px;
+  fill: #efefef;
+}
+path{
+  fill: none;
+  stroke: #FFF5C9;
+}
+.bar{
+  fill: #FFF5C9;
+}
+</style>
+</head>
+<body>
+  <p style="text-align: center; color: #fff; font-size: 13px;">こちらはTechnical Rockstarsオフィスの玄関の明るさの日ごとの総量になります（初回読み込み時は表示まで時間がかかります）。</p>
+<div id="svgchart" style="margin: 0 auto; width: 1040px;"></div>
+<ul id="list"></ul>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
+<script src="https://cdn.mlkcca.com/v2.0.0/milkcocoa.js"></script>
+<script src="bar.js"></script>
+<script>
+window.onload = function(){
+  var milkcocoa = new MilkCocoa("{your-app-id}.mlkcca.com");
+  var stream = milkcocoa.dataStore("light").stream().size(999).sort('asc');
+  var streamS = milkcocoa.dataStore("light").stream().size(100).sort('desc');
+  var list = document.getElementById('list');
+  var tmp = [{
+    date: '',
+    value: 0
+  }];
+  var j = 0;
+  var n, l;
+
+  var barChart = new createBarChart();
+      barChart.setSvg("svgchart");
+
+  if (!localStorage['mlkccaRaspiGraphGata']) {
+
+    initialLoop(0, [], function(datas) {
+      datas.forEach(function(d,i){
+        var date = new Date(d.timestamp);
+        // var dateElement = document.createElement('li');
+        var dateArray = date.toString().split(' ');
+
+
+        if(tmp[j].date != (dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3])){
+          j++;
+          tmp.push({
+            date: dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3],
+            value: d.value.v
+          });
+
+        } else {
+          if(d.value.v > 6){
+            tmp[j] = {
+              date: dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3],
+              value: tmp[j].value + d.value.v
+            }
+          }
+        }
+
+        // dateElement.innerHTML = date;
+        // list.appendChild(dateElement);
+      });
+      console.log(tmp);
+      barChart.setDatas(tmp);
+      barChart.init();
+      barChart.initialDraw();
+      tmp.pop();
+      localStorage['mlkccaRaspiGraphGata'] = JSON.stringify(tmp);
+    });
+
+  } else {
+
+    loop(0, [], function(datas) {
+
+      var past = JSON.parse(localStorage['mlkccaRaspiGraphGata']);
+      j = past.length - 1;
+
+      var lastDate = past[j].date;
+
+      datas = datas.reverse();
+
+      datas.forEach(function(d,i){
+        var date = new Date(d.timestamp);
+        var dateArray = date.toString().split(' ');
+
+
+        if(past[j].date != (dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3])){
+          j++;
+          past.push({
+            date: dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3],
+            value: d.value.v
+          });
+
+        } else {
+          if( (d.value.v > 6) && (lastDate != (dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3])) ){
+            past[j] = {
+              date: dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3],
+              value: past[j].value + d.value.v
+            }
+          }
+        }
+
+      });
+      console.log(past);
+      barChart.setDatas(past);
+      barChart.init();
+      barChart.initialDraw();
+      past.pop();
+      localStorage['mlkccaRaspiGraphGata'] = JSON.stringify(past);
+    });
+  }
+
+
+
+
+
+  function initialLoop(count, stocks, cb) {
+    stream.next(function(err, elems) {
+      stocks = stocks.concat(elems);
+      if(count < 70) initialLoop(count + 1, stocks, cb);
+      else cb(stocks);
+    });
+  }
+
+  function loop(count, stocks, cb) {
+
+    var allowReturn = false;
+    var summary = JSON.parse(localStorage['mlkccaRaspiGraphGata']);
+
+    streamS.next(function(err, elems) {
+      var reverseElems = elems.reverse();
+      stocks = stocks.concat(reverseElems);
+      stocks.forEach(function(d,i){
+        var rawDate = new Date(d.timestamp);
+        var dateArray = rawDate.toString().split(' ');
+        var date = dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3];
+        var flag;
+
+        for (n = 0, l = summary.length; n < l; n++) {
+          if(summary[n].date==date){
+            flag = true;
+            break;
+          } else {
+            flag = false;
+          }
+        };
+
+        if(flag) allowReturn = true;
+      });
+
+      if( (count < 700) && !allowReturn) loop(count + 1, stocks, cb);
+      else cb(stocks);
+    });
+  }
+
+}
+</script>
+</body>
+</html>
