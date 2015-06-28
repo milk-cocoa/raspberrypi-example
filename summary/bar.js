@@ -12,6 +12,7 @@
   function get_graph_data(data){
     return data.map(function(d) {
       return {
+        // StringをDateに変換
         date : parseDate(d.date),
         value : d.value
       };
@@ -79,8 +80,8 @@
   }
 
 
-  // 最初の描画
-  createBarChart.prototype.initialDraw = function() {
+  // 描画
+  createBarChart.prototype.draw = function() {
 
     var that = this;
 
@@ -91,15 +92,9 @@
     this.yScale.domain([0, d3.max(dataset, function(d) { return d.value; })]);
 
     var bars = this.svg.selectAll(".bar")
-        .data(dataset, function(d) { return d.date; });
+        .data(dataset);
 
     bars.exit().remove();
-
-    bars.transition().duration(1000)
-        .attr("x", function(d) { return that.xScale(d.dateset) - that.width/dataset.length/2; })
-        .attr("width", that.width / dataset.length)
-        .attr("y", function(d) { return that.yScale(d.value); })
-        .attr("height", function(d) { return that.height - that.yScale(d.value);});
 
     // x軸の描画
     this.svg.append("g")

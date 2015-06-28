@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <title>Technical Rockstarsオフィスの玄関の明るさの日ごとの総量</title>
@@ -26,146 +26,201 @@ path{
 .bar{
   fill: #FFF5C9;
 }
+
+.spinner {
+  position: relative;
+  top: 200px;
+  margin: 0 auto;
+  width: 70px;
+  text-align: center;
+}
+
+.spinner > div {
+  color: #FFF5C9;
+  width: 18px;
+  height: 18px;
+  background-color: #FFF5C9;
+
+  border-radius: 100%;
+  display: inline-block;
+  -webkit-animation: bouncedelay 1.4s infinite ease-in-out;
+  animation: bouncedelay 1.4s infinite ease-in-out;
+  /* Prevent first frame from flickering when animation starts */
+  -webkit-animation-fill-mode: both;
+  animation-fill-mode: both;
+}
+.spinner .bounce1 {
+  -webkit-animation-delay: -0.32s;
+  animation-delay: -0.32s;
+}
+
+.spinner .bounce2 {
+  -webkit-animation-delay: -0.16s;
+  animation-delay: -0.16s;
+}
+
+@-webkit-keyframes bouncedelay {
+  0%, 80%, 100% { -webkit-transform: scale(0.0) }
+  40% { -webkit-transform: scale(1.0) }
+}
+
+@keyframes bouncedelay {
+  0%, 80%, 100% {
+    transform: scale(0.0);
+    -webkit-transform: scale(0.0);
+  } 40% {
+    transform: scale(1.0);
+    -webkit-transform: scale(1.0);
+  }
+}
 </style>
 </head>
 <body>
   <p style="text-align: center; color: #fff; font-size: 13px;">こちらはTechnical Rockstarsオフィスの玄関の明るさの日ごとの総量になります（初回読み込み時は表示まで時間がかかります）。</p>
-<div id="svgchart" style="margin: 0 auto; width: 1040px;"></div>
-<ul id="list"></ul>
+  <!-- ローディングアイコン -->
+  <div id="loading"><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>
+  <!-- グラフ表示領域 -->
+  <div id="svgchart" style="margin: 0 auto; width: 1040px;"></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js"></script>
 <script src="https://cdn.mlkcca.com/v2.0.0/milkcocoa.js"></script>
 <script src="bar.js"></script>
 <script>
 window.onload = function(){
   var milkcocoa = new MilkCocoa("{your-app-id}.mlkcca.com");
+
   var stream = milkcocoa.dataStore("light").stream().size(999).sort('asc');
-  var streamS = milkcocoa.dataStore("light").stream().size(100).sort('desc');
-  var list = document.getElementById('list');
-  var tmp = [{
+  var streamNew = milkcocoa.dataStore("light").stream().size(100).sort('desc');
+
+  var loading = document.getElementById('loading');
+
+  var daily = [{
     date: '',
     value: 0
   }];
-  var j = 0;
-  var n, l;
 
   var barChart = new createBarChart();
       barChart.setSvg("svgchart");
 
+  // ローカルストレージが空だったら（初回読み込み時）
   if (!localStorage['mlkccaRaspiGraphGata']) {
 
-    initialLoop(0, [], function(datas) {
-      datas.forEach(function(d,i){
-        var date = new Date(d.timestamp);
-        var dateArray = date.toString().split(' ');
+    initialLoop([], function(data) {
+      var j = 0;
 
+      data.forEach(function(d,i){
+        var date = new Date(d.timestamp); // 'Tue Jan 01 2013 09:00:00 GMT+0900'みたいな文字列
+        var dateArray = date.toString().split(' ');  // ['Tue','Jan','01','2013','09:00:00','GMT+0900']みたいな配列に
+        var day = dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3]; // 日付だけ取り出す。'Jan-01-2013'みたいな文字列
 
-        if(tmp[j].date != (dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3])){
+        // 日付が一緒だったらvalueに足していく。日付が変わったら次の日付に移動(j++)。
+        if(daily[j].date != day){
           j++;
-          tmp.push({
-            date: dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3],
+          daily.push({
+            date: day,
             value: d.value.v
           });
 
         } else {
-          if(d.value.v > 6){
-            tmp[j] = {
-              date: dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3],
-              value: tmp[j].value + d.value.v
-            }
+          if(d.value.v > 6){ // 6未満の値は電気がついていないときなので無視
+            daily[j] = {
+              date: day,
+              value: daily[j].value + d.value.v
+            };
           }
         }
       });
 
-      console.log(tmp);
-      barChart.setDatas(tmp);
+      loading.innerHTML = '';
+
+      barChart.setDatas(daily);
       barChart.init();
-      barChart.initialDraw();
-      tmp.pop();
-      localStorage['mlkccaRaspiGraphGata'] = JSON.stringify(tmp);
+      barChart.draw();
+
+      // 今日のデータを削除
+      daily.pop();
+      // 昨日までのデータをローカルストレージに溜めて、次回以降の読み込みを短縮
+      localStorage['mlkccaRaspiGraphGata'] = JSON.stringify(daily);
     });
 
-  } else {
 
-    loop(0, [], function(datas) {
+  } else {
+  // ローカルストレージにデータがあったら(2回目以降の読み込み時)
+
+    loop([], function(data) {
 
       var past = JSON.parse(localStorage['mlkccaRaspiGraphGata']);
-      j = past.length - 1;
+      var j = past.length - 1;
 
-      var lastDate = past[j].date;
+      var lastDay = past[j].date;
 
-      datas = datas.reverse();
+      // 新しい順に並んでいるので古い順に並べ直す
+      data = data.reverse();
 
-      datas.forEach(function(d,i){
+      data.forEach(function(d,i){
         var date = new Date(d.timestamp);
         var dateArray = date.toString().split(' ');
+        var day = dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3];
 
-
-        if(past[j].date != (dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3])){
+        if(day != past[j].date){
           j++;
           past.push({
-            date: dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3],
+            date: day,
             value: d.value.v
           });
 
         } else {
-          if( (d.value.v > 6) && (lastDate != (dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3])) ){
+          if( (d.value.v > 6) && (day != lastDay) ){ // ローカルストレージに保存済みの日付のデータは無視
             past[j] = {
-              date: dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3],
+              date: day,
               value: past[j].value + d.value.v
-            }
+            };
           }
         }
-
       });
-      console.log(past);
+
+
+      loading.innerHTML = '';
+
       barChart.setDatas(past);
       barChart.init();
-      barChart.initialDraw();
+      barChart.draw();
+
       past.pop();
       localStorage['mlkccaRaspiGraphGata'] = JSON.stringify(past);
     });
   }
 
 
-
-
-
-  function initialLoop(count, stocks, cb) {
+  function initialLoop(stocks, callback) {
     stream.next(function(err, elems) {
       stocks = stocks.concat(elems);
-      if(elems.length > 0) initialLoop(count + 1, stocks, cb);
-      else cb(stocks);
+      if(elems.length > 0) initialLoop(stocks, callback);
+      else callback(stocks);
     });
   }
 
-  function loop(count, stocks, cb) {
+  function loop(stocks, callback) {
 
-    var allowReturn = false;
-    var summary = JSON.parse(localStorage['mlkccaRaspiGraphGata']);
+    var allowEscape = false;
+    var past = JSON.parse(localStorage['mlkccaRaspiGraphGata']);
+    var lastDay = past[past.length - 1].date;
 
-    streamS.next(function(err, elems) {
+    streamNew.next(function(err, elems) {
+      // descで取ってきたデータは古い順にならんでいるの、新しい順に並べ直す
       var reverseElems = elems.reverse();
       stocks = stocks.concat(reverseElems);
-      stocks.forEach(function(d,i){
+
+      elems.forEach(function(d,i){
         var rawDate = new Date(d.timestamp);
         var dateArray = rawDate.toString().split(' ');
-        var date = dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3];
-        var flag;
-
-        for (n = 0, l = summary.length; n < l; n++) {
-          if(summary[n].date==date){
-            flag = true;
-            break;
-          } else {
-            flag = false;
-          }
-        };
-
-        if(flag) allowReturn = true;
+        var day = dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3];
+        // 既にローカルストレージに保存したデータまで取得し始めたらエスケープ
+        if(day==lastDay) allowEscape = true;
       });
 
-      if( (elems.length > 0) && !allowReturn) loop(count + 1, stocks, cb);
-      else cb(stocks);
+      if( (elems.length > 0) && !allowEscape) loop(stocks, callback);
+      else callback(stocks);
     });
   }
 
