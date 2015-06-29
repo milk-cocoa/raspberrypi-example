@@ -185,6 +185,8 @@ window.onload = function(){
 
       loading.innerHTML = '';
 
+      console.log(past);
+
       barChart.setDatas(past);
       barChart.init();
       barChart.draw();
@@ -197,7 +199,21 @@ window.onload = function(){
 
   function initialLoop(stocks, callback) {
     stream.next(function(err, elems) {
+
+      var willDelete = [];
+
+      elems.forEach(function(d,i){
+        var rawDate = new Date(d.timestamp);
+        var dateArray = rawDate.toString().split(' ');
+        var year = dateArray[3];
+        if(year == '1970') willDelete.push(i);
+      });
+
+      willDelete.forEach(function(d,i){
+        elems.splice(d,1);
+      });
       stocks = stocks.concat(elems);
+
       if(elems.length > 0) initialLoop(stocks, callback);
       else callback(stocks);
     });
@@ -210,17 +226,26 @@ window.onload = function(){
     var lastDay = past[past.length - 1].date;
 
     streamNew.next(function(err, elems) {
+
+      var willDelete = [];
       // descで取ってきたデータは古い順にならんでいるの、新しい順に並べ直す
       var reverseElems = elems.reverse();
-      stocks = stocks.concat(reverseElems);
 
-      elems.forEach(function(d,i){
+      reverseElems.forEach(function(d,i){
         var rawDate = new Date(d.timestamp);
         var dateArray = rawDate.toString().split(' ');
         var day = dateArray[1] + '-' + dateArray[2] + '-' + dateArray[3];
+        var year = dateArray[3];
+        if(year == '1970') willDelete.push(i);
         // 既にローカルストレージに保存したデータまで取得し始めたらエスケープ
         if(day==lastDay) allowEscape = true;
       });
+
+      willDelete.forEach(function(d,i){
+        reverseElems.splice(d,1);
+      });
+
+      stocks = stocks.concat(reverseElems);
 
       if( (elems.length > 0) && !allowEscape) loop(stocks, callback);
       else callback(stocks);
